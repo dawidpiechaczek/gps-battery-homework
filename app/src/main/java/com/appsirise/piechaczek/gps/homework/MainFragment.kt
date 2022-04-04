@@ -5,10 +5,14 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
 import com.appsirise.piechaczek.gps.homework.databinding.FragmentFirstBinding
+import dagger.hilt.android.AndroidEntryPoint
 
-class FirstFragment : Fragment() {
+@AndroidEntryPoint
+class MainFragment : Fragment() {
 
+    private val mainViewModel: MainViewModel by viewModels()
     private var _binding: FragmentFirstBinding? = null
     private val binding get() = _binding!!
 
@@ -23,10 +27,10 @@ class FirstFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.buttonStart.setOnClickListener {
-
+            mainViewModel.getBatteryLevel()
         }
         binding.buttonStop.setOnClickListener {
-
+            mainViewModel.getLocation()
         }
     }
 
