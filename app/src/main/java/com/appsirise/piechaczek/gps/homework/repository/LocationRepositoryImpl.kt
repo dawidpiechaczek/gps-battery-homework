@@ -1,4 +1,4 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.repository
 
 import android.Manifest
 import android.content.Context
@@ -7,6 +7,7 @@ import android.location.Location
 import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.appsirise.piechaczek.gps.homework.extensions.safeOffer
 import com.google.android.gms.location.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
@@ -15,9 +16,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
 
-class LocationServiceImpl @Inject constructor(
+class LocationRepositoryImpl @Inject constructor(
     @ApplicationContext private val applicationContext: Context
-) : LocationService {
+) : LocationRepository {
 
     override fun getLocation(intervalDelay: Long): Flow<Location> = callbackFlow {
         val permissionFine = ContextCompat.checkSelfPermission(

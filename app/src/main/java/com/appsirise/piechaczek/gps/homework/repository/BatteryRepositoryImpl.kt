@@ -1,7 +1,8 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.repository
 
 import android.content.Context
 import android.os.BatteryManager
+import com.appsirise.piechaczek.gps.homework.extensions.safeOffer
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow

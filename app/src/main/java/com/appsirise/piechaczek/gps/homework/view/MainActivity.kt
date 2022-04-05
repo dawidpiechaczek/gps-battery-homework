@@ -1,13 +1,12 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.view
 
-import android.Manifest
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.navigateUp
 import androidx.navigation.ui.setupActionBarWithNavController
+import com.appsirise.piechaczek.gps.homework.R
 import com.appsirise.piechaczek.gps.homework.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
 

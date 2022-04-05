@@ -1,4 +1,4 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.view
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,11 +10,19 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.LiveData
-import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
+import com.appsirise.piechaczek.gps.homework.model.AppPermission
+import com.appsirise.piechaczek.gps.homework.model.ViewState
 import com.appsirise.piechaczek.gps.homework.databinding.FragmentFirstBinding
+import com.appsirise.piechaczek.gps.homework.extensions.handlePermissions
+import com.appsirise.piechaczek.gps.homework.extensions.zipWith
 import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
+
+// PARAMETERS
+const val MAX_LIST_SIZE = 20
+const val LOCATION_INTERVAL = 12000L
+const val BATTERY_INTERVAL = 5000L
 
 @AndroidEntryPoint
 class MainFragment : Fragment() {
@@ -29,6 +37,7 @@ class MainFragment : Fragment() {
     private var batteryLiveData: LiveData<ViewState<String>> = MutableLiveData()
     private var locationLiveData: LiveData<ViewState<String>> = MutableLiveData()
     private var locationAndBatteryLiveData: LiveData<ViewState<String>> = MutableLiveData()
+    private val batteriesAndLocations: MutableList<String> = ArrayList()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,8 +50,21 @@ class MainFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRequestPermissionLauncher()
+        setupObservers()
         initView()
         requestPermissionLauncher?.launch(locationPermission.permissionName)
+    }
+
+    private fun setupObservers() {
+        mainViewModel.uploadedOnServerLiveData.observe(viewLifecycleOwner) { uploadState ->
+            when (uploadState) {
+                is ViewState.Error -> showSnackbar(uploadState.errorMessage)
+                is ViewState.Success -> {
+                    batteriesAndLocations.removeAll(uploadState.data)
+                    showSnackbar("Measurements sent successfully!")
+                }
+            }
+        }
     }
 
     private fun initView() {
@@ -67,26 +89,33 @@ class MainFragment : Fragment() {
         locationAndBatteryLiveData = locationLiveData.zipWith(batteryLiveData)
         locationAndBatteryLiveData.observe(viewLifecycleOwner) {
             when (it) {
-                is ViewState.Error -> Snackbar.make(
-                    binding.buttonStop,
-                    it.errorMessage,
-                    Snackbar.LENGTH_SHORT
-                ).show()
-                is ViewState.Success -> Snackbar.make(
-                    binding.buttonStop,
-                    it.data,
-                    Snackbar.LENGTH_SHORT
-                ).show()
+                is ViewState.Error -> showSnackbar(it.errorMessage)
+                is ViewState.Success -> {
+                    addToListAndCheckSize(it.data)
+                    showSnackbar(it.data)
+                }
             }
         }
     }
 
+
+    private fun showSnackbar(message: String) {
+        Snackbar.make(binding.buttonStop, message, Snackbar.LENGTH_SHORT).show()
+    }
+
+    private fun addToListAndCheckSize(batteryOrLocation: String) {
+        batteriesAndLocations.add(batteryOrLocation)
+        if (batteriesAndLocations.size >= MAX_LIST_SIZE) {
+            mainViewModel.uploadOnServer(batteriesAndLocations)
+        }
+    }
+
     private fun startGettingLocation() {
-        locationLiveData = mainViewModel.locationLiveData(7000L)
+        locationLiveData = mainViewModel.locationLiveData(LOCATION_INTERVAL)
     }
 
     private fun startGettingBatteryState() {
-        batteryLiveData = mainViewModel.batteryLiveData(5000L)
+        batteryLiveData = mainViewModel.batteryLiveData(BATTERY_INTERVAL)
     }
 
     private fun stopGettingLocation() {

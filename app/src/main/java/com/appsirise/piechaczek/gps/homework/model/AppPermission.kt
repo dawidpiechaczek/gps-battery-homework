@@ -1,4 +1,4 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.model
 
 import android.Manifest
 

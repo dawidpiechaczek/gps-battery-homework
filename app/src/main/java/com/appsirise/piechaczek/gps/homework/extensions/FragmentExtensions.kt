@@ -1,7 +1,8 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.extensions
 
 import androidx.core.content.PermissionChecker
 import androidx.fragment.app.Fragment
+import com.appsirise.piechaczek.gps.homework.model.AppPermission
 
 fun Fragment.handlePermissions(
     permissions: List<AppPermission>,

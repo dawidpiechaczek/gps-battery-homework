@@ -1,4 +1,4 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.extensions
 
 import android.util.Log
 import kotlinx.coroutines.channels.SendChannel

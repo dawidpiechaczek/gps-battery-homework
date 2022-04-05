@@ -1,6 +1,8 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.di
 
 import android.content.Context
+import com.appsirise.piechaczek.gps.homework.repository.BatteryRepository
+import com.appsirise.piechaczek.gps.homework.repository.BatteryRepositoryImpl
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

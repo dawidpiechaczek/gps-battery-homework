@@ -1,4 +1,4 @@
-package com.appsirise.piechaczek.gps.homework
+package com.appsirise.piechaczek.gps.homework.repository
 
 import kotlinx.coroutines.flow.Flow
 
