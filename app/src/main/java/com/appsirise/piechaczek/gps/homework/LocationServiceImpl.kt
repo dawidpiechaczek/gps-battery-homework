@@ -9,34 +9,30 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import java.util.concurrent.CancellationException
 import javax.inject.Inject
 
 class LocationServiceImpl @Inject constructor(
     @ApplicationContext private val applicationContext: Context
 ) : LocationService {
 
-    override fun getLocation(): Flow<Location> = callbackFlow {
-        val permissionFine =
-            ContextCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            )
-        val permissionCoarse =
-            ContextCompat.checkSelfPermission(
-                applicationContext,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
+    override fun getLocation(intervalDelay: Long): Flow<Location> = callbackFlow {
+        val permissionFine = ContextCompat.checkSelfPermission(
+            applicationContext, Manifest.permission.ACCESS_FINE_LOCATION
+        )
+        val permissionCoarse = ContextCompat.checkSelfPermission(
+            applicationContext, Manifest.permission.ACCESS_COARSE_LOCATION
+        )
 
-        if (permissionFine == PackageManager.PERMISSION_GRANTED && permissionCoarse == PackageManager.PERMISSION_GRANTED) {
+        if (permissionFine == PackageManager.PERMISSION_GRANTED &&
+            permissionCoarse == PackageManager.PERMISSION_GRANTED
+        ) {
             Log.d("LocationServiceImpl", "Permissions granted")
             val request = LocationRequest.create().apply {
-                interval = 30 * 1000
-                fastestInterval = 30 * 1000
+                interval = intervalDelay
+                fastestInterval = intervalDelay
                 priority = LocationRequest.PRIORITY_HIGH_ACCURACY
             }
 
