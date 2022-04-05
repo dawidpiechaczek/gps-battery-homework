@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import com.google.android.gms.location.*
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import javax.inject.Inject
@@ -38,12 +39,14 @@ class LocationServiceImpl @Inject constructor(
 
             val client: FusedLocationProviderClient =
                 LocationServices.getFusedLocationProviderClient(applicationContext)
-
-            client.requestLocationUpdates(request, object : LocationCallback() {
-                override fun onLocationResult(locationResult: LocationResult) {
-                    safeOffer(locationResult.lastLocation)
-                }
-            }, Looper.getMainLooper())
+            while (true) {
+                client.requestLocationUpdates(request, object : LocationCallback() {
+                    override fun onLocationResult(locationResult: LocationResult) {
+                        safeOffer(locationResult.lastLocation)
+                    }
+                }, Looper.getMainLooper())
+                delay(intervalDelay)
+            }
         }
         awaitClose {
             Log.d("LocationServiceImpl", "Localizator stopped scan")

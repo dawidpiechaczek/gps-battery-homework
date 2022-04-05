@@ -1,8 +1,10 @@
 package com.appsirise.piechaczek.gps.homework
 
-import android.location.Location
 import android.util.Log
-import androidx.lifecycle.*
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.liveData
+import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collect
 import javax.inject.Inject
@@ -13,11 +15,11 @@ class MainViewModel @Inject constructor(
     private val batteryRepository: BatteryRepository
 ) : ViewModel() {
 
-    fun locationLiveData(interval: Long): LiveData<ViewState<Location>> =
+    fun locationLiveData(interval: Long): LiveData<ViewState<String>> =
         liveData(viewModelScope.coroutineContext) {
             locationService.getLocation(interval).collect { location ->
                 try {
-                    emit(ViewState.Success(location))
+                    emit(ViewState.Success("Location: ${location.latitude} ${location.longitude}"))
                 } catch (error: Throwable) {
                     Log.e("MainViewModel", error.message ?: "Error during getting location")
                     emit(ViewState.Error("Error during getting location"))
@@ -25,12 +27,12 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    fun batteryLiveData(interval: Long): LiveData<ViewState<Int>> =
+    fun batteryLiveData(interval: Long): LiveData<ViewState<String>> =
         liveData(viewModelScope.coroutineContext) {
             batteryRepository.getBatteryState(interval)
                 .collect {
                     try {
-                        emit(ViewState.Success(it))
+                        emit(ViewState.Success("Battery level: $it"))
                     } catch (error: Exception) {
                         Log.e(
                             "MainViewModel",

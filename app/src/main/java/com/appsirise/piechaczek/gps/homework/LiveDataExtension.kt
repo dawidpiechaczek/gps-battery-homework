@@ -3,16 +3,13 @@ package com.appsirise.piechaczek.gps.homework
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MediatorLiveData
 
-fun <T, K, R> LiveData<T>.combineWith(
-    liveData: LiveData<K>,
-    block: (T?, K?) -> R
-): LiveData<R> {
-    val result = MediatorLiveData<R>()
-    result.addSource(this) {
-        result.value = block(this.value, liveData.value)
+fun <A> LiveData<A>.zipWith(stream: LiveData<A>): LiveData<A> {
+    val result = MediatorLiveData<A>()
+    result.addSource(this) { a ->
+        result.value = a
     }
-    result.addSource(liveData) {
-        result.value = block(this.value, liveData.value)
+    result.addSource(stream) { b ->
+        result.value = b
     }
     return result
 }

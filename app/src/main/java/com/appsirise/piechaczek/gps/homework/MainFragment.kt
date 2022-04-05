@@ -1,6 +1,5 @@
 package com.appsirise.piechaczek.gps.homework
 
-import android.location.Location
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,6 +10,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MediatorLiveData
 import androidx.lifecycle.MutableLiveData
 import com.appsirise.piechaczek.gps.homework.databinding.FragmentFirstBinding
 import com.google.android.material.snackbar.Snackbar
@@ -26,8 +26,9 @@ class MainFragment : Fragment() {
     private val locationPermission = AppPermission.AccessFineLocation
     private var requestPermissionLauncher: ActivityResultLauncher<String>? = null
 
-    private var batteryLiveData: LiveData<ViewState<Int>> = MutableLiveData()
-    private var locationLiveData: LiveData<ViewState<Location>> = MutableLiveData()
+    private var batteryLiveData: LiveData<ViewState<String>> = MutableLiveData()
+    private var locationLiveData: LiveData<ViewState<String>> = MutableLiveData()
+    private var locationAndBatteryLiveData: LiveData<ViewState<String>> = MutableLiveData()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -41,66 +42,51 @@ class MainFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         setupRequestPermissionLauncher()
         initView()
-
-        batteryLiveData.combineWith(locationLiveData) { x, c ->
-
-        }.observe(viewLifecycleOwner) {
-
-        }
-
         requestPermissionLauncher?.launch(locationPermission.permissionName)
     }
 
     private fun initView() {
         binding.buttonStart.setOnClickListener {
-            if (locationLiveData.hasActiveObservers() || batteryLiveData.hasActiveObservers()) {
+            if (locationAndBatteryLiveData.hasActiveObservers()) {
                 Toast.makeText(requireContext(), "Ignored", Toast.LENGTH_LONG).show()
             } else {
                 startGettingBatteryState()
                 startGettingLocation()
+                setupLocationAndBatteryObservator()
             }
         }
 
         binding.buttonStop.setOnClickListener {
             stopGettingBatteryState()
             stopGettingLocation()
+            locationAndBatteryLiveData.removeObservers(viewLifecycleOwner)
+        }
+    }
+
+    private fun setupLocationAndBatteryObservator() {
+        locationAndBatteryLiveData = locationLiveData.zipWith(batteryLiveData)
+        locationAndBatteryLiveData.observe(viewLifecycleOwner) {
+            when (it) {
+                is ViewState.Error -> Snackbar.make(
+                    binding.buttonStop,
+                    it.errorMessage,
+                    Snackbar.LENGTH_SHORT
+                ).show()
+                is ViewState.Success -> Snackbar.make(
+                    binding.buttonStop,
+                    it.data,
+                    Snackbar.LENGTH_SHORT
+                ).show()
+            }
         }
     }
 
     private fun startGettingLocation() {
-        locationLiveData = mainViewModel.locationLiveData(10000L)
-        locationLiveData.observe(viewLifecycleOwner) { locationState ->
-            when (locationState) {
-                is ViewState.Error -> Snackbar.make(
-                    binding.buttonStop,
-                    locationState.errorMessage,
-                    Snackbar.LENGTH_SHORT
-                ).show()
-                is ViewState.Success -> Snackbar.make(
-                    binding.buttonStop,
-                    "Location: " + locationState.data,
-                    Snackbar.LENGTH_SHORT
-                ).show()
-            }
-        }
+        locationLiveData = mainViewModel.locationLiveData(7000L)
     }
 
     private fun startGettingBatteryState() {
         batteryLiveData = mainViewModel.batteryLiveData(5000L)
-        batteryLiveData.observe(viewLifecycleOwner) { batteryState ->
-            when (batteryState) {
-                is ViewState.Error -> Snackbar.make(
-                    binding.buttonStop,
-                    batteryState.errorMessage,
-                    Snackbar.LENGTH_SHORT
-                ).show()
-                is ViewState.Success -> Snackbar.make(
-                    binding.buttonStop,
-                    "Battery: " + batteryState.data,
-                    Snackbar.LENGTH_SHORT
-                ).show()
-            }
-        }
     }
 
     private fun stopGettingLocation() {
@@ -130,14 +116,11 @@ class MainFragment : Fragment() {
     private fun checkLocationPermission() {
         handlePermissions(
             listOf(locationPermission),
-            onAllGranted = {
-                // checkBatteryPermissionsIfNeeded()
-            },
+            onAllGranted = {},
             onNotGranted = {
                 requestPermissionLauncher?.launch(it.permissionName)
-                // checkBatteryPermissionsIfNeeded()
             },
-            onRationaleNeeded = { permission ->
+            onRationaleNeeded = {
                 Toast.makeText(requireContext(), "Rationale needed", Toast.LENGTH_LONG).show()
             }
         )
