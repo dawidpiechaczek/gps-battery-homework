@@ -1,5 +1,6 @@
 package com.appsirise.piechaczek.gps.homework.view
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.appsirise.piechaczek.gps.homework.model.AppPermission
 import com.appsirise.piechaczek.gps.homework.model.ViewState
 import com.appsirise.piechaczek.gps.homework.databinding.FragmentFirstBinding
@@ -20,9 +22,10 @@ import com.google.android.material.snackbar.Snackbar
 import dagger.hilt.android.AndroidEntryPoint
 
 // PARAMETERS
-const val MAX_LIST_SIZE = 20
-const val LOCATION_INTERVAL = 12000L
+const val MAX_LIST_SIZE = 10
+const val LOCATION_INTERVAL = 3000L
 const val BATTERY_INTERVAL = 5000L
+const val API_CALL_DELAY = 5000L
 
 @AndroidEntryPoint
 class MainFragment : Fragment() {
@@ -34,10 +37,12 @@ class MainFragment : Fragment() {
     private val locationPermission = AppPermission.AccessFineLocation
     private var requestPermissionLauncher: ActivityResultLauncher<String>? = null
 
-    private var batteryLiveData: LiveData<ViewState<String>> = MutableLiveData()
-    private var locationLiveData: LiveData<ViewState<String>> = MutableLiveData()
-    private var locationAndBatteryLiveData: LiveData<ViewState<String>> = MutableLiveData()
-    private val batteriesAndLocations: MutableList<String> = ArrayList()
+    private var batteryLiveData: LiveData<ViewState<MeasurementItem>> = MutableLiveData()
+    private var locationLiveData: LiveData<ViewState<MeasurementItem>> = MutableLiveData()
+    private var locationAndBatteryLiveData: LiveData<ViewState<MeasurementItem>> = MutableLiveData()
+    private val batteriesAndLocations: MutableList<MeasurementItem> = ArrayList()
+    private var measurementsAdapter: MeasurementsAdapter? = null
+    private var isSending = false
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -59,9 +64,13 @@ class MainFragment : Fragment() {
         mainViewModel.uploadedOnServerLiveData.observe(viewLifecycleOwner) { uploadState ->
             when (uploadState) {
                 is ViewState.Error -> showSnackbar(uploadState.errorMessage)
+                is ViewState.Loading -> isSending = true
                 is ViewState.Success -> {
                     batteriesAndLocations.removeAll(uploadState.data)
+                    measurementsAdapter?.submitList(batteriesAndLocations)
+                    measurementsAdapter?.notifyDataSetChanged()
                     showSnackbar("Measurements sent successfully!")
+                    isSending = false
                 }
             }
         }
@@ -83,6 +92,12 @@ class MainFragment : Fragment() {
             stopGettingLocation()
             locationAndBatteryLiveData.removeObservers(viewLifecycleOwner)
         }
+
+        measurementsAdapter = MeasurementsAdapter()
+        with(binding.list) {
+            adapter = measurementsAdapter
+            layoutManager = LinearLayoutManager(requireContext())
+        }
     }
 
     private fun setupLocationAndBatteryObservator() {
@@ -92,21 +107,22 @@ class MainFragment : Fragment() {
                 is ViewState.Error -> showSnackbar(it.errorMessage)
                 is ViewState.Success -> {
                     addToListAndCheckSize(it.data)
-                    showSnackbar(it.data)
                 }
             }
         }
     }
 
-
     private fun showSnackbar(message: String) {
         Snackbar.make(binding.buttonStop, message, Snackbar.LENGTH_SHORT).show()
     }
 
-    private fun addToListAndCheckSize(batteryOrLocation: String) {
+    @SuppressLint("NotifyDataSetChanged")
+    private fun addToListAndCheckSize(batteryOrLocation: MeasurementItem) {
         batteriesAndLocations.add(batteryOrLocation)
-        if (batteriesAndLocations.size >= MAX_LIST_SIZE) {
-            mainViewModel.uploadOnServer(batteriesAndLocations)
+        measurementsAdapter?.submitList(batteriesAndLocations)
+        measurementsAdapter?.notifyDataSetChanged()
+        if (batteriesAndLocations.size >= MAX_LIST_SIZE && !isSending) {
+            mainViewModel.uploadOnServer(API_CALL_DELAY, batteriesAndLocations.toList())
         }
     }
 
@@ -157,6 +173,7 @@ class MainFragment : Fragment() {
 
     override fun onDestroyView() {
         requestPermissionLauncher = null
+        measurementsAdapter = null
         super.onDestroyView()
         _binding = null
     }

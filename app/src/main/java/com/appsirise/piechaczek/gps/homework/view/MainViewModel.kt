@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -20,14 +21,22 @@ class MainViewModel @Inject constructor(
     private val uploadDataOnServerUseCase: UploadDataOnServerUseCase
 ) : ViewModel() {
 
-    private val _uploadedOnServerLiveData = SingleLiveEvent<ViewState<List<String>>>()
-    val uploadedOnServerLiveData: LiveData<ViewState<List<String>>> = _uploadedOnServerLiveData
+    private val _uploadedOnServerLiveData = SingleLiveEvent<ViewState<List<MeasurementItem>>>()
+    val uploadedOnServerLiveData: LiveData<ViewState<List<MeasurementItem>>> =
+        _uploadedOnServerLiveData
 
-    fun locationLiveData(interval: Long): LiveData<ViewState<String>> =
+    fun locationLiveData(interval: Long): LiveData<ViewState<MeasurementItem>> =
         liveData(viewModelScope.coroutineContext) {
             locationRepository.getLocation(interval).collect { location ->
                 try {
-                    emit(ViewState.Success("Location: ${location.latitude} ${location.longitude}"))
+                    emit(
+                        ViewState.Success(
+                            MeasurementItem(
+                                UUID.randomUUID(),
+                                "Location: ${location.latitude} ${location.longitude}"
+                            )
+                        )
+                    )
                 } catch (error: Throwable) {
                     Log.e("MainViewModel", error.message ?: "Error during getting location")
                     emit(ViewState.Error("Error during getting location"))
@@ -35,12 +44,19 @@ class MainViewModel @Inject constructor(
             }
         }
 
-    fun batteryLiveData(interval: Long): LiveData<ViewState<String>> =
+    fun batteryLiveData(interval: Long): LiveData<ViewState<MeasurementItem>> =
         liveData(viewModelScope.coroutineContext) {
             batteryRepository.getBatteryState(interval)
                 .collect {
                     try {
-                        emit(ViewState.Success("Battery level: $it"))
+                        emit(
+                            ViewState.Success(
+                                MeasurementItem(
+                                    UUID.randomUUID(),
+                                    "Battery level: $it"
+                                )
+                            )
+                        )
                     } catch (error: Exception) {
                         Log.e(
                             "MainViewModel",
@@ -51,12 +67,13 @@ class MainViewModel @Inject constructor(
                 }
         }
 
-    fun uploadOnServer(batteriesAndLocations: List<String>) {
+    fun uploadOnServer(delay: Long, batteriesAndLocations: List<MeasurementItem>) {
         viewModelScope.launch {
             try {
+                _uploadedOnServerLiveData.value = ViewState.Loading
                 val uploadedData = uploadDataOnServerUseCase.uploadOnServer(batteriesAndLocations)
                 //simulation of api call with delay
-                delay(3000L)
+                delay(delay)
                 _uploadedOnServerLiveData.value = ViewState.Success(uploadedData)
             } catch (error: Exception) {
                 _uploadedOnServerLiveData.value =
