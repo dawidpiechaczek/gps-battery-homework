@@ -1,4 +1,4 @@
-# gps-battery-homework
+# gps-battery-coroutines-livedata
 
 Homework with threading battery + gps
 
